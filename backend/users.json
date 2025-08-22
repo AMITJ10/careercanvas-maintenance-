@@ -1,0 +1,12 @@
+{
+  "admin@cvcompass.ai": {
+    "name": "Admin User",
+    "email": "admin@cvcompass.ai",
+    "password_hash": "927cc1634a79da0b46dc200a0ab35b9231e828d41510a0c68f6852d6c3f57520",
+    "salt": "default_salt",
+    "role": "admin",
+    "created_at": "2025-08-17T15:46:03.981486",
+    "last_login": null,
+    "is_verified": true
+  }
+}

@@ -1,0 +1,13 @@
+# Optional: ONLY if you build an embeddings KB locally
+langchain==0.3.27
+langchain-core==0.3.72
+langchain-community==0.3.27
+langchain-text-splitters==0.3.9
+langchain-huggingface==0.1.2
+
+# Safer FAISS pin with wheels on py310/py311
+faiss-cpu==1.7.4.post2
+
+# If you truly need sentence-transformers, expect big downloads:
+# sentence-transformers==2.7.0
+# torch==2.2.2
