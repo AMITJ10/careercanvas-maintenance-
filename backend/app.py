@@ -25,12 +25,7 @@ from auth import (
 )
 
 # ---- App modules
-from resume_templates import (
-    get_template_preview,
-    get_roles,
-    filter_templates_by_role,
-    get_template_with_content,  # ⬅️ added
-)
+from resume_templates import TEMPLATES, get_template_by_id
 from resume_builder import create_resume_builder_interface
 from career_advisor import CareerAdvisor
 from resume_parser import parse_resume
@@ -38,9 +33,9 @@ from resume_parser import parse_resume
 
 # ==================== Page & Styles ====================
 st.set_page_config(
-    page_title="CVCompass AI - Career Assistant",
+    page_title="CareerCanvas AI - Career Assistant",
     layout="wide",
-    page_icon="🧭",
+    page_icon="🎨",
     initial_sidebar_state="expanded",
 )
 
@@ -905,70 +900,50 @@ def page_templates():
     st.header("📄 Professional Templates")
 
     # role filter (clear preview when role changes)
-    roles = get_roles()
+    roles = ["technical", "non-technical"]
     sel = st.selectbox("Filter by role", roles, index=0)
     if st.session_state.get("templates_role") != sel:
         st.session_state.templates_role = sel
         st.session_state.preview_template_id = None
 
-    templates = filter_templates_by_role(sel)
+    templates = [t for t in TEMPLATES if t["role_category"] == sel]
     if not templates:
         st.info("No templates for this role.")
         return
 
-    ids = list(templates.keys())
     cols = st.columns(3)
-    for i, tid in enumerate(ids):
-        t = templates[tid]
+    for i, template in enumerate(templates):
         with cols[i % 3]:
             st.markdown(
                 f'<div class="card"><div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">'
-                f'<div style="font-size:24px">{t.get("icon","📄")}</div>'
-                f'<div><div style="font-weight:700;font-size:16px">{t.get("name","Untitled")}</div>'
-                f'<div style="font-size:12px;color:var(--text-secondary)">{t.get("role","")}</div></div></div>'
-                f'<div style="font-size:13px;color:var(--text-secondary);line-height:1.5">{t.get("description","")}</div></div>',
+                f'<div style="font-size:24px">📄</div>'
+                f'<div><div style="font-weight:700;font-size:16px">{template["name"]}</div>'
+                f'<div style="font-size:12px;color:var(--text-secondary)">{template["role_category"]}</div></div></div>'
+                f'<div style="font-size:13px;color:var(--text-secondary);line-height:1.5">{"Photo slot included" if template["has_image_slot"] else "Text-based layout"}</div></div>',
                 unsafe_allow_html=True,
             )
             cprev, cuse = st.columns(2)
             with cprev:
-                if st.button("👁 Preview", key=f"prev_{tid}", use_container_width=True):
-                    st.session_state.preview_template_id = tid  # ⬅️ inline preview flag
+                if st.button("👁 Preview", key=f"prev_{template['id']}", use_container_width=True):
+                    st.session_state.preview_template_id = template["id"]
             with cuse:
                 disabled = not gate("Builder")
-                if st.button("Use", key=f"use_{tid}", use_container_width=True, disabled=disabled):
+                if st.button("Use", key=f"use_{template['id']}", use_container_width=True, disabled=disabled):
                     if disabled:
                         st.warning("Sign in to use the builder.")
                     else:
-                        st.session_state.selected_template = tid
-                        # pass the exact template HTML to builder
-                        try:
-                            st.session_state.resume_html = get_template_with_content(tid)
-                        except Exception:
-                            st.session_state.resume_html = get_template_preview(tid)
+                        st.session_state.selected_template = template["id"]
+                        st.session_state.builder_template_html = template["html"]
                         st.session_state.current_page = "Builder"
                         st.rerun()
 
     # single inline preview block below the role subcontainer
     preview_tid = st.session_state.get("preview_template_id")
     if preview_tid:
-        try:
-            html_fragment = get_template_with_content(preview_tid)
-        except Exception:
-            html_fragment = get_template_preview(preview_tid)
-
-        st.markdown("### Preview")
-        st.markdown(
-            f"""
-<div class="preview-viewport" style="max-width: 100%; margin: 0 auto;">
-  <div class="preview-scale" style="transform: scale(0.70); transform-origin: top center; width: 794px; margin: 0 auto;">
-    <div class="pdf" style="width: 794px; height: 1123px; background: #fff; color: #111; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35); overflow: hidden;">
-      {html_fragment}
-    </div>
-  </div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+        template = get_template_by_id(preview_tid)
+        if template:
+            st.markdown("### Preview")
+            components.html(template["html"], height=1500, scrolling=True)
 
 
 
