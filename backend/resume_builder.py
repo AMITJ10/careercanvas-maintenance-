@@ -2,6 +2,7 @@
 # Builder with LHS form + RHS live preview (properly scaled and fitted). No Download/Reset here (handled in app.py).
 
 import streamlit as st
+import streamlit.components.v1 as components
 from resume_templates import get_template_preview, get_template_with_content  # ⬅️ added
 
 def _assemble_html_from_state(template_id: str) -> str:
@@ -162,18 +163,8 @@ def create_resume_builder_interface():
 
         html_fragment = st.session_state.get("resume_html") or _assemble_html_from_state(template_id)
 
-        st.markdown(
-    f"""
-<div class="preview-viewport" style="max-width: 100%; margin: 0 auto;">
-  <div class="preview-scale" style="transform: scale(0.75); transform-origin: left center; width: 740px; margin: 0 auto;">
-    <div class="pdf" style="width: 650px; height: 923px; background: #000; color: #111; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.35); overflow: hidden;">
-      {html_fragment}
-    </div>
-  </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+        # Render actual HTML inside a scrollable container
+        components.html(html_fragment, height=950, scrolling=True)
 
         template_info = st.session_state.get('selected_template', 'Unknown')
         st.caption(f"📋 Template: {template_info}")

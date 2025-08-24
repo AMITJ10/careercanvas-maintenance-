@@ -25,7 +25,7 @@ from auth import (
 )
 
 # ---- App modules
-from resume_templates import TEMPLATES, get_template_by_id
+from resume_templates import TEMPLATES, get_template_by_id, get_template_preview
 from resume_builder import create_resume_builder_interface
 from career_advisor import CareerAdvisor
 from resume_parser import parse_resume
@@ -631,6 +631,40 @@ def gate(feature_name: str) -> bool:
 
 
 # ==================== Logos ====================
+def _find_logo():
+    from pathlib import Path as _Path
+    candidates = [
+        _Path("CareerCanvasAI-removebg-preview.png"),
+        _Path("assets/CareerCanvasAI-removebg-preview.png"),
+        _Path("static/CareerCanvasAI-removebg-preview.png"),
+        _Path("images/CareerCanvasAI-removebg-preview.png"),
+        _Path(__file__).with_name("CareerCanvasAI-removebg-preview.png"),
+        _Path(__file__).parent / "assets/CareerCanvasAI-removebg-preview.png",
+        _Path(__file__).parent / "static/CareerCanvasAI-removebg-preview.png",
+    ]
+    for p in candidates:
+        try:
+            if p.exists():
+                return str(p)
+        except Exception:
+            continue
+    return None
+
+def show_logo(width: int = 46):
+    try:
+        p = _find_logo()
+        if p:
+            st.image(p, width=width)
+        else:
+            st.markdown(
+                '<div style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:800;">CC</div>',
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        st.markdown(
+            '<div style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:800;">CC</div>',
+            unsafe_allow_html=True,
+        )
 GOOGLE_SVG = """
 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
   <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.4 29.3 36 24 36 16.8 36 11 30.2 11 23S16.8 10 24 10c3.6 0 6.9 1.4 9.4 3.6l5.7-5.7C35.4 3.3 29.9 1 24 1 11.8 1 2 10.8 2 23s9.8 22 22 22c11 0 21-8 21-22 0-1.4-.1-2.8-.4-4.5z"/>
@@ -649,16 +683,24 @@ LINKEDIN_SVG = """
 
 # ==================== PDF helpers ====================
 def html_to_pdf_bytes(html: str) -> bytes | None:
+    # Try pdfkit (wkhtmltopdf)
+    try:
+        import pdfkit  # type: ignore
+        return pdfkit.from_string(html, False)
+    except Exception:
+        pass
+    # Try WeasyPrint
+    try:
+        from weasyprint import HTML
+        return HTML(string=html).write_pdf()
+    except Exception:
+        pass
+    # Try xhtml2pdf
     try:
         from xhtml2pdf import pisa
         buf = io.BytesIO()
         pisa.CreatePDF(src=html, dest=buf)
         return buf.getvalue()
-    except Exception:
-        pass
-    try:
-        from weasyprint import HTML
-        return HTML(string=html).write_pdf()
     except Exception:
         pass
     return None
@@ -684,21 +726,22 @@ def text_to_pdf_bytes(title: str, text: str) -> bytes:
 
 
 # ==================== Auth Landing ====================
+def _ensure_state():
+    st.session_state.setdefault("auth_tab", "signin")
+    st.session_state.setdefault("current_page", "Dashboard")
+    st.session_state.setdefault("authenticated", False)
+    st.session_state.setdefault("user_info", {})
+
 def render_auth_landing():
-    st.markdown(
-        """
-<div class="site-title">
-  <div style="font-size:40px">🧭</div>
-  <div style="text-align:center">
-    <h1>CVCompass AI</h1>
-    <small>Career Assistant</small>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+    _ensure_state()
 
     st.markdown('<div class="card" style="max-width:760px;margin:0 auto;">', unsafe_allow_html=True)
+    top = st.columns([1, 8])
+    with top[0]:
+        show_logo(46)
+    with top[1]:
+        st.markdown("## CVCompass AI")
+        st.caption("Career Assistant")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -785,7 +828,9 @@ def render_auth_landing():
 # ==================== Sidebar & Navigation ====================
 def render_app_sidebar():
     with st.sidebar:
-        st.markdown('<div class="sidebar-logo"><h2>🧭 CVCompass AI</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-logo">', unsafe_allow_html=True)
+        show_logo(46)
+        st.markdown('<h2 style="margin-top:8px;">CVCompass AI</h2></div>', unsafe_allow_html=True)
 
         ui = st.session_state.get("user_info") or {}
         if ui:
@@ -926,6 +971,7 @@ def page_templates():
             with cprev:
                 if st.button("👁 Preview", key=f"prev_{template['id']}", use_container_width=True):
                     st.session_state.preview_template_id = template["id"]
+                    st.session_state["scroll_to_preview"] = True
             with cuse:
                 disabled = not gate("Builder")
                 if st.button("Use", key=f"use_{template['id']}", use_container_width=True, disabled=disabled):
@@ -937,13 +983,28 @@ def page_templates():
                         st.session_state.current_page = "Builder"
                         st.rerun()
 
+    # Anchor just above preview block for smooth scrolling
+    components.html('<div id="preview_block"></div>', height=0)
+
     # single inline preview block below the role subcontainer
     preview_tid = st.session_state.get("preview_template_id")
     if preview_tid:
         template = get_template_by_id(preview_tid)
         if template:
             st.markdown("### Preview")
-            components.html(template["html"], height=1500, scrolling=True)
+            # Smooth scroll into view if just clicked Preview
+            if st.session_state.get("scroll_to_preview"):
+                components.html(
+                    """
+<script>
+  document.getElementById("preview_block")?.scrollIntoView({behavior:"smooth", block:"start"});
+</script>
+""",
+                    height=0,
+                )
+                st.session_state["scroll_to_preview"] = False
+            # Render template HTML at a sensible height
+            components.html(template["html"], height=900, scrolling=True)
 
 
 
@@ -1093,20 +1154,22 @@ def page_interview_prep():
         with st.spinner("Generating your personalized interview guide…"):
             advisor = CareerAdvisor()
             try:
-                # 1) Existing interview guide (unchanged behavior)
+                # 1) Generate guide
                 if _is_technical_role(role):
                     guide_md = advisor.interview_prep_dsa(role, seniority, company_type)
                 else:
                     guide_md = advisor.interview_prep_general(role, seniority, company_type)
 
+                # Normalize underline headings to # style to avoid literal ===== lines
+                guide_md = _normalize_markdown_headings(guide_md)
                 st.markdown("### 📋 Your Interview Guide (AI-generated)")
-                st.markdown(f'<div class="card" style="line-height:1.6">{guide_md}</div>', unsafe_allow_html=True)
+                st.markdown(guide_md, unsafe_allow_html=False)
 
-                # 2) NEW: Stage-wise role roadmap in the *same structure* as your sample,
-                # fully LLM-generated (no hardcoding) and tailored to role/seniority/company type
+                # 2) Stage-wise roadmap
                 roadmap_md = advisor.stage_roadmap(role, seniority, company_type)
+                roadmap_md = _normalize_markdown_headings(roadmap_md)
                 st.markdown("### 🛣️ Role Roadmap (AI-generated)")
-                st.markdown(f'<div class="card" style="line-height:1.6">{roadmap_md}</div>', unsafe_allow_html=True)
+                st.markdown(roadmap_md, unsafe_allow_html=False)
 
                 # (Optional) Keep download flow only for the interview guide to avoid UI drift
                 pdf_bytes = text_to_pdf_bytes(f"{role} Interview Guide", _strip_md(guide_md))
@@ -1142,26 +1205,47 @@ def _strip_md(md: str) -> str:
         lines.append(line)
     return "\n".join(lines)
 
+def _normalize_markdown_headings(md: str) -> str:
+    # Convert patterns like "Title\n=====..." into "### Title"
+    lines = (md or "").splitlines()
+    output = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        if i + 1 < len(lines):
+            underline = lines[i + 1].strip()
+            if set(underline) <= set("=") and len(underline) >= 3:
+                output.append(f"### {line.strip('* ').strip()}")
+                i += 2
+                continue
+            if set(underline) <= set("-") and len(underline) >= 3:
+                output.append(f"### {line.strip('* ').strip()}")
+                i += 2
+                continue
+        # Convert bold heading style like **Title** to ## style
+        if line.startswith("**") and line.endswith("**") and len(line) > 4:
+            output.append(f"### {line.strip('* ')}")
+        else:
+            output.append(line)
+        i += 1
+    return "\n".join(output)
+
 
 
 # ==================== Router ====================
 def run():
+    _ensure_state()
     if not st.session_state.get("authenticated"):
         render_auth_landing()
         return
 
-    st.markdown(
-        """
-<div class="site-title">
-  <div style="font-size:34px">🧭</div>
-  <div style="text-align:center">
-    <h1 style="font-size:38px">CVCompass AI</h1>
-    <small>Career Assistant</small>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+    # Header with logo
+    cols = st.columns([1, 8])
+    with cols[0]:
+        show_logo(46)
+    with cols[1]:
+        st.markdown("# CVCompass AI")
+        st.caption("Career Assistant")
 
     render_app_sidebar()
 
