@@ -1,73 +1,151 @@
-# Welcome to your Lovable project
+# Resume Builder
 
-## Project info
+A modern, responsive resume builder application built with React, TypeScript, and Tailwind CSS. Create professional resumes with beautiful templates and download them as PDF files.
 
-**URL**: https://lovable.dev/projects/30645b54-6d95-4bf4-b5d7-18481d4b45e1
+## Features
 
-## How can I edit this code?
+### 🎨 Templates Page
+- **Template Gallery**: Browse through 6 professionally designed resume templates
+- **Preview Functionality**: Click "Preview" to see a detailed view of any template
+- **Auto-scroll**: Automatically scrolls to the preview section when preview is clicked
+- **Reduced Preview Size**: Preview is scaled down (75%) for better viewing
+- **Template Selection**: Click "Use Template" to navigate to the builder with the selected template
 
-There are several ways of editing your application.
+### 🛠️ Builder Page
+- **Template Validation**: Ensures users can only access the builder with a selected template
+- **Real-time Preview**: See changes reflected immediately as you type
+- **Comprehensive Form Sections**:
+  - Personal Information (name, email, phone, location, LinkedIn, professional title)
+  - Professional Summary
+  - Work Experience (add/remove multiple entries)
+  - Education (add/remove multiple entries)
+  - Skills (add/remove skills with badges)
+  - Projects (add/remove project entries)
+- **PDF Download**: Generate and download resume as a high-quality PDF file
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-**Use Lovable**
+### 🎯 User Experience
+- **Navigation**: Clean navigation bar with Home and Templates links
+- **Form Validation**: Proper input types and validation
+- **Toast Notifications**: User feedback for actions like PDF generation
+- **Modern UI**: Built with shadcn/ui components for a polished look
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/30645b54-6d95-4bf4-b5d7-18481d4b45e1) and start prompting.
+## Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Routing**: React Router DOM
+- **PDF Generation**: jsPDF + html2canvas
+- **Build Tool**: Vite
+- **Package Manager**: npm
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
+- Node.js (version 16 or higher)
+- npm
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd resume-builder
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Open your browser and navigate to `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Building for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Usage
 
-## What technologies are used for this project?
+### Creating a Resume
 
-This project is built with:
+1. **Start at Home**: Visit the homepage to see an overview of features
+2. **Choose Template**: Navigate to the Templates page and browse available designs
+3. **Preview Template**: Click "Preview" to see a detailed view of the template
+4. **Select Template**: Click "Use Template" to start building with that design
+5. **Fill Information**: Use the form on the left to add your personal information, experience, education, skills, and projects
+6. **Real-time Preview**: See your changes reflected immediately in the preview panel on the right
+7. **Download PDF**: Click "Download PDF" to generate and download your resume
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Template Categories
 
-## How can I deploy this project?
+- **Modern**: Clean, contemporary designs perfect for tech professionals
+- **Classic**: Traditional layouts suitable for corporate environments
+- **Creative**: Unique designs for creative professionals and artists
 
-Simply open [Lovable](https://lovable.dev/projects/30645b54-6d95-4bf4-b5d7-18481d4b45e1) and click on Share -> Publish.
+## Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+src/
+├── components/
+│   ├── ui/           # shadcn/ui components
+│   └── Navigation.tsx
+├── pages/
+│   ├── Index.tsx     # Landing page
+│   ├── Templates.tsx # Template selection page
+│   ├── Builder.tsx   # Resume builder page
+│   └── NotFound.tsx  # 404 page
+├── types/
+│   └── index.ts      # TypeScript interfaces
+└── App.tsx           # Main app component with routing
+```
 
-Yes, you can!
+## Features in Detail
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Template System
+- 6 pre-designed templates with different layouts
+- Template data includes name, description, category, and layout type
+- Smooth navigation between template selection and builder
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Form Management
+- Dynamic form sections that can be added/removed
+- Real-time state management with React hooks
+- Proper TypeScript typing for all form data
+
+### PDF Generation
+- Uses jsPDF for PDF creation
+- html2canvas for capturing the resume preview
+- Automatic page breaking for long resumes
+- High-quality output with proper scaling
+
+### Responsive Design
+- Mobile-first approach with Tailwind CSS
+- Responsive grid layouts
+- Touch-friendly interface elements
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Future Enhancements
+
+- More template designs
+- Template customization options
+- Resume sharing functionality
+- Cloud storage for saved resumes
+- Multiple language support
+- Advanced formatting options
