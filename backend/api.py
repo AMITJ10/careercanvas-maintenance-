@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 # Templates & previews
@@ -19,6 +19,7 @@ except Exception:
 
 # LLM status & roadmap
 from career_advisor import CareerAdvisor
+from pdf_generator import generate_resume_pdf
 try:
     from llm_client import check_llm_status
 except Exception:
@@ -216,6 +217,57 @@ def api_render_template_body(payload: RenderPayload):
     else:
         html = _assemble_html_internal(template_id, p)
     return HTMLResponse(content=html)
+
+# ---------- PDF Rendering ----------
+def _payload_to_pdf_data(payload: RenderPayload) -> Dict[str, Any]:
+    # Map the simpler RenderPayload fields into the reportlab-based PDF schema
+    name = (payload.contact_name or "").strip()
+    first_name = name.split(" ")[0] if name else ""
+    last_name = " ".join(name.split(" ")[1:]) if name and len(name.split(" ")) > 1 else ""
+
+    experiences = []
+    if any([payload.work_company, payload.work_role, payload.work_desc, payload.work_duration]):
+        experiences.append({
+            "title": payload.work_role or "Role",
+            "company": payload.work_company or "Company",
+            "location": "",
+            "start_date": (payload.work_duration or "").split("–")[0].strip() if payload.work_duration else "",
+            "end_date": (payload.work_duration or "").split("–")[-1].strip() if payload.work_duration else "",
+            "current": False,
+            "description": payload.work_desc or "",
+        })
+
+    education = []
+    if any([payload.edu_school, payload.edu_degree, payload.edu_duration]):
+        education.append({
+            "degree": payload.edu_degree or "",
+            "institution": payload.edu_school or "",
+            "location": "",
+            "graduation_date": payload.edu_duration or "",
+            "gpa": "",
+        })
+
+    return {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": payload.contact_email or "",
+        "phone": payload.contact_phone or "",
+        "city": "",
+        "linkedin": "",
+        "professional_summary": payload.summary_text or "",
+        "experiences": experiences,
+        "education": education,
+        "technical_skills": payload.skill_list or "",
+        "soft_skills": "",
+    }
+
+@app.post("/api/pdf/{template_id}")
+def api_render_pdf(template_id: str, payload: RenderPayload):
+    data = _payload_to_pdf_data(payload)
+    pdf_buf = generate_resume_pdf(template_id, data)
+    return StreamingResponse(pdf_buf, media_type="application/pdf", headers={
+        "Content-Disposition": "attachment; filename=resume.pdf"
+    })
 
 @app.get("/api/llm/status")
 def api_llm_status():
