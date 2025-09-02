@@ -794,7 +794,17 @@ def _normalize_darker_text(html: str) -> str:
 # Helper API (used by app.py)
 # ---------------------------
 
+
+TEMPLATES = _TEMPLATES  # public alias expected by app.py
+
+# ADD this helper (near other helpers)
+def get_template_by_id(template_id: str) -> Dict[str, Any]:
+    return _TEMPLATES[template_id]
+
+# REPLACE your existing __all__ with this
 __all__ = [
+    "TEMPLATES",
+    "get_template_by_id",
     "get_template_preview",
     "get_template_with_content",
     "get_roles",
