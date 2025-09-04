@@ -3,7 +3,10 @@
 
 import streamlit as st
 import streamlit.components.v1 as components
-from resume_templates import get_template_preview, get_template_with_content  # ⬅️ added
+from resume_templates import get_template_preview, get_template_with_content, get_template_by_id
+import base64
+import io
+from PIL import Image
 
 def _assemble_html_from_state(template_id: str) -> str:
     """Create a properly formatted resume HTML using session state fields with better template fitting."""
@@ -35,7 +38,7 @@ def _assemble_html_from_state(template_id: str) -> str:
                 line = '• ' + line
             exp_bullets += f"<li>{line[2:] if line.startswith(('• ', '- ')) else line}</li>"
 
-    # A compact, ATS-safe generic layout (kept from your previous file)
+    # A compact, ATS-safe generic layout
     filled = f"""
 <div style="font-family:Inter,Arial,sans-serif; line-height:1.6; color:#333; padding:40px 50px;">
   <div style="text-align:center; margin-bottom:30px; border-bottom:2px solid #2563eb; padding-bottom:20px;">
@@ -50,14 +53,13 @@ def _assemble_html_from_state(template_id: str) -> str:
   </div>
 
   <div style="margin-bottom:25px;">
-    <h2 style="color:#1e40af; border-bottom:1px solid #e5e7eb; padding-bottom:5px; font-size:18px;">PROFESSIONAL EXPERIENCE</h2>
-    <div style="margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0; font-size:16px; color:#2d3748;">{exp_role}</h3>
-        <span style="color:#666; font-size:14px;">{exp_duration}</span>
+    <h2 style="color:#1e40af; border-bottom:1px solid #e5e7eb; padding-bottom:5px; font-size:18px;">EXPERIENCE</h2>
+    <div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <div style="font-weight:600; color:#2d3748;">{exp_role} — {exp_company}</div>
+        <div style="color:#666;">{exp_duration}</div>
       </div>
-      <div style="font-weight:600; color:#555; margin:2px 0 10px 0;">{exp_company}</div>
-      <ul style="margin:5px 0; padding-left:20px;">{exp_bullets}</ul>
+      <ul style="margin:6px 0 0 18px; color:#4a5568;">{exp_bullets}</ul>
     </div>
   </div>
 
@@ -88,18 +90,40 @@ def create_resume_builder_interface():
         st.info("Select a template from the Templates page to start building your resume.")
         return
 
-    # Initialize once with the EXACT template HTML chosen on Templates page
-    if not st.session_state.get("initialized_from_template_html"):
-        try:
-            st.session_state["resume_html"] = get_template_with_content(template_id)
-        except Exception:
-            st.session_state["resume_html"] = get_template_preview(template_id)
-        st.session_state["initialized_from_template_html"] = True  # ⬅️ one-time init
+    # Use the exact template HTML passed from Templates page
+    if "builder_template_html" in st.session_state and st.session_state["builder_template_html"]:
+        current_html = st.session_state["builder_template_html"]
+    else:
+        # Fallback to template preview if no HTML was passed
+        current_html = get_template_preview(template_id)
+        st.session_state["builder_template_html"] = current_html
 
-    col_form, col_prev = st.columns([0.8,0.7 ], gap="large")
+    # Check if template has image slot
+    template = get_template_by_id(template_id)
+    has_image_slot = template and template.get("has_image_slot", False)
+
+    col_form, col_prev = st.columns([0.8, 0.7], gap="large")
 
     with col_form:
         st.markdown("### ✏️ Fill Your Details")
+        
+        # Photo upload for templates with image slots
+        if has_image_slot:
+            st.markdown("#### 📷 Profile Photo")
+            uploaded_photo = st.file_uploader("Upload profile photo", type=["png", "jpg", "jpeg", "webp"], key="photo_upload")
+            if uploaded_photo:
+                try:
+                    img = Image.open(uploaded_photo).convert("RGB")
+                    bio = io.BytesIO()
+                    img.save(bio, format="PNG")
+                    data_uri = "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode()
+                    
+                    # Replace photo placeholder in HTML
+                    updated_html = st.session_state["builder_template_html"].replace("{{PHOTO_URL}}", data_uri)
+                    st.session_state["builder_template_html"] = updated_html
+                    st.success("Photo uploaded successfully!")
+                except Exception as e:
+                    st.error(f"Error uploading photo: {e}")
 
         # Contact Information
         st.markdown("#### 📞 Contact Information")
@@ -155,16 +179,18 @@ def create_resume_builder_interface():
             ),
         )
 
-        # As user types, assemble a fresh HTML (keeps your existing behavior)
-        st.session_state["resume_html"] = _assemble_html_from_state(template_id)
+        # Initialize builder HTML if needed
+        if "builder_template_html" not in st.session_state or not st.session_state["builder_template_html"]:
+            st.session_state["builder_template_html"] = _assemble_html_from_state(template_id)
 
     with col_prev:
         st.markdown("### 👀 Live Preview")
 
-        html_fragment = st.session_state.get("resume_html") or _assemble_html_from_state(template_id)
+        html_doc = st.session_state.get("builder_template_html") or _assemble_html_from_state(template_id)
 
-        # Render actual HTML inside a scrollable container
-        components.html(html_fragment, height=950, scrolling=True)
+        # Render the resume correctly (not as raw HTML text) and fit inside preview container
+        # Use components.html so full HTML documents render properly
+        components.html(html_doc, height=980, scrolling=True)
 
         template_info = st.session_state.get('selected_template', 'Unknown')
         st.caption(f"📋 Template: {template_info}")
