@@ -3,12 +3,6 @@ import os
 import tempfile
 from pathlib import Path
 from datetime import datetime
-# app.py
-import sys
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-if APP_DIR not in sys.path:
-    sys.path.insert(0, APP_DIR)
-
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -746,7 +740,7 @@ def render_auth_landing():
     with top[0]:
         show_logo(46)
     with top[1]:
-        st.markdown("## CVCompass AI")
+        st.markdown("## CareerCanvas  AI")
         st.caption("Career Assistant")
 
     c1, c2 = st.columns(2)
@@ -824,7 +818,7 @@ def render_auth_landing():
     st.markdown(
         f"""
 <div class="site-info">
-  © {datetime.now().year} CVCompass AI — Build ATS-friendly resumes, analyze your CV, and prepare for interviews with AI.
+  © {datetime.now().year} CareerCanvas AI — Build ATS-friendly resumes, analyze your CV, and prepare for interviews with AI.
 </div>
 """,
         unsafe_allow_html=True,
@@ -836,7 +830,7 @@ def render_app_sidebar():
     with st.sidebar:
         st.markdown('<div class="sidebar-logo">', unsafe_allow_html=True)
         show_logo(46)
-        st.markdown('<h2 style="margin-top:8px;">CVCompass AI</h2></div>', unsafe_allow_html=True)
+        st.markdown('<h2 style="margin-top:8px;">CareerCanvas  AI</h2></div>', unsafe_allow_html=True)
 
         ui = st.session_state.get("user_info") or {}
         if ui:
@@ -910,7 +904,7 @@ def _close_template_modal():
 # ==================== Pages ====================
 def page_dashboard():
     st.markdown(
-        '<div class="card">Welcome to CVCompass AI. Use the sidebar to explore Templates, Builder, and Analyzer.</div>',
+        '<div class="card">Welcome to CareerCanvas  AI. Use the sidebar to explore Templates, Builder, and Analyzer.</div>',
         unsafe_allow_html=True
     )
 
@@ -1050,7 +1044,7 @@ def page_builder():
                 for k, v in st.session_state.items():
                     if any(k.startswith(p) for p in ("contact_", "work_", "edu_", "skill_", "summary_", "builder_")) and isinstance(v, str):
                         text_resume += f"{k}: {v}\n"
-                pdf_bytes = text_to_pdf_bytes("CVCompass Resume", text_resume)
+                pdf_bytes = text_to_pdf_bytes("CareerCanvas AI Resume", text_resume)
             st.download_button(
                 "Download Resume (PDF)",
                 data=pdf_bytes,
@@ -1250,7 +1244,7 @@ def run():
     with cols[0]:
         show_logo(46)
     with cols[1]:
-        st.markdown("# CVCompass AI")
+        st.markdown("# CareerCanvas AI")
         st.caption("Career Assistant")
 
     render_app_sidebar()
@@ -1274,7 +1268,7 @@ def run():
     st.markdown(
         f"""
 <div class="site-info">
-  © {datetime.now().year} CVCompass AI — Build ATS-friendly resumes, analyze your CV, and prepare for interviews with AI.
+  © {datetime.now().year} CareerCanvas AI — Build ATS-friendly resumes, analyze your CV, and prepare for interviews with AI.
 </div>
 """,
         unsafe_allow_html=True,
@@ -1282,5 +1276,4 @@ def run():
 
 
 if __name__ == "__main__":
-
     run()
