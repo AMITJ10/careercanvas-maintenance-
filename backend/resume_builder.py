@@ -7,6 +7,7 @@ from resume_templates import get_template_preview, get_template_with_content, ge
 import base64
 import io
 from PIL import Image
+from datetime import datetime
 
 def _assemble_html_from_state(template_id: str) -> str:
     """Create a properly formatted resume HTML using session state fields with better template fitting."""
@@ -83,6 +84,128 @@ def _assemble_html_from_state(template_id: str) -> str:
     return filled
 
 
+def _inject_user_data_into_template(template_html: str) -> str:
+    """Inject user form data into the template HTML for live preview."""
+    # Get user data from session state
+    name = st.session_state.get("contact_name", "Your Name")
+    title = st.session_state.get("contact_title", "Your Professional Title")
+    email = st.session_state.get("contact_email", "your.email@example.com")
+    phone = st.session_state.get("contact_phone", "+91 99999 99999")
+    summary = st.session_state.get("summary_text", "Write a compelling professional summary highlighting your key achievements and expertise.")
+    skills = st.session_state.get("skill_list", "List your key skills, technologies, and tools")
+    
+    # Experience data
+    exp_company = st.session_state.get("work_company", "Company Name")
+    exp_role = st.session_state.get("work_role", "Your Job Title")
+    exp_duration = st.session_state.get("work_duration", "Jan 2020 – Present")
+    exp_desc = st.session_state.get("work_desc", "• Describe your key achievements and responsibilities\n• Use bullet points with metrics and impact\n• Focus on results and outcomes")
+    
+    # Education data
+    edu_school = st.session_state.get("edu_school", "University/Institution Name")
+    edu_degree = st.session_state.get("edu_degree", "Degree Program")
+    edu_duration = st.session_state.get("edu_duration", "2016 – 2020")
+    
+    # Create replacements for common template patterns
+    replacements = {
+        # Name variations
+        "Your Name": name,
+        "John Miller": name,
+        "JOHN MILLER": name.upper() if name != "Your Name" else "YOUR NAME",
+        "John <span": f"{name.split()[0] if name != 'Your Name' and ' ' in name else name} <span",
+        
+        # Title/Role variations
+        "Your Professional Title": title,
+        "Software Engineer": title,
+        "Senior Software Engineer": title,
+        "Data analyst": title.lower() if title != "Your Professional Title" else "data analyst",
+        
+        # Contact info
+        "your.email@example.com": email,
+        "XXXXXXX@gmail.com": email,
+        "john.smith@email.com": email,
+        "+91 99999 99999": phone,
+        "+91&nbsp;00&nbsp;00&nbsp;00&nbsp;00&nbsp;00": phone.replace(" ", "&nbsp;"),
+        "+000000000000": phone,
+        
+        # Company and role in experience
+        "Company Name": exp_company,
+        "Google India": exp_company,
+        "XXXX (Hyderabad)": exp_company,
+        "Your Job Title": exp_role,
+        "Engineer": exp_role,
+        "Designation": exp_role,
+        
+        # Duration
+        "Jan 2020 – Present": exp_duration,
+        "Jan 2022 – Present": exp_duration,
+        "2018.08–2024.05": exp_duration,
+        "Jan 2021 – present": exp_duration,
+        "Mar 2019 – Jan 2021": exp_duration,
+        
+        # Education
+        "University/Institution Name": edu_school,
+        "IIT Delhi": edu_school,
+        "JNTU Kakinada University": edu_school,
+        "University": edu_school,
+        "College": edu_school,
+        "Degree Program": edu_degree,
+        "B.Tech in Computer Science": edu_degree,
+        "Bachelor's Degree": edu_degree,
+        "PhD (Subject)": edu_degree,
+        "2016 – 2020": edu_duration,
+        "2018 – 2022": edu_duration,
+        "2012–2015": edu_duration,
+        
+        # Skills
+        "List your key skills, technologies, and tools": skills,
+        "Python, JavaScript, React, AWS, Docker, Kubernetes": skills,
+        "This, That, Some of this and that etc.": skills,
+        "Also some more of this, Some more that, And some of this and that etc.": skills,
+    }
+    
+    # Apply replacements
+    updated_html = template_html
+    for old_text, new_text in replacements.items():
+        if old_text in updated_html:
+            updated_html = updated_html.replace(old_text, new_text)
+    
+    # Handle experience description bullet points
+    if exp_desc and exp_desc != "• Describe your key achievements and responsibilities\n• Use bullet points with metrics and impact\n• Focus on results and outcomes":
+        # Format as HTML list items
+        exp_bullets = ""
+        lines = [line.strip() for line in exp_desc.split('\n') if line.strip()]
+        for line in lines:
+            clean_line = line[2:] if line.startswith(('• ', '- ')) else line
+            exp_bullets += f"<li>{clean_line}</li>"
+        
+        # Replace existing experience content
+        patterns_to_replace = [
+            "long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width long long line of blah blah that will wrap when the table fills the column width",
+            "<li>long long line of blah blah that will wrap when the table fills the column width</li>",
+            "<li>again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah. again, long long line of blah blah that will wrap when the table fills the column width but this time even more long long line of blah blah</li>",
+            "<li>Collected, cleaned, and processed large datasets from multiple sources to ensure data accuracy and integrity.</li>",
+        ]
+        
+        for pattern in patterns_to_replace:
+            if pattern in updated_html and exp_bullets:
+                updated_html = updated_html.replace(pattern, exp_bullets, 1)
+                break
+    
+    # Handle summary replacement
+    if summary and summary != "Write a compelling professional summary highlighting your key achievements and expertise.":
+        summary_patterns = [
+            "This CV can also be automatically compiled and published using GitHub Actions. For details, <a href=\"https://github.com/jitinnair1/autoCV\" style=\"color:#0a4a8a;text-decoration:none;border-bottom:1px dashed #0a4a8a;\">click here</a>.",
+            "Experienced <em>Data Analyst</em> with over 5+ years of expertise in SQL, Python, Excel, Power BI, Power BI Service, T-SQL, BIRT reporting tool, and Kibana. Proficient in data manipulation, statistical analysis, and data visualization. Skilled in data collection, cleansing, analysis, and creating insightful visual reports to support data-driven decision-making. Strong communicator with a track record of translating complex data into actionable business insights.",
+        ]
+        
+        for pattern in summary_patterns:
+            if pattern in updated_html:
+                updated_html = updated_html.replace(pattern, summary)
+                break
+    
+    return updated_html
+
+
 def create_resume_builder_interface():
     template_id = st.session_state.get("selected_template")
 
@@ -92,11 +215,11 @@ def create_resume_builder_interface():
 
     # Use the exact template HTML passed from Templates page
     if "builder_template_html" in st.session_state and st.session_state["builder_template_html"]:
-        current_html = st.session_state["builder_template_html"]
+        base_template_html = st.session_state["builder_template_html"]
     else:
         # Fallback to template preview if no HTML was passed
-        current_html = get_template_preview(template_id)
-        st.session_state["builder_template_html"] = current_html
+        base_template_html = get_template_preview(template_id)
+        st.session_state["builder_template_html"] = base_template_html
 
     # Check if template has image slot
     template = get_template_by_id(template_id)
@@ -118,9 +241,12 @@ def create_resume_builder_interface():
                     img.save(bio, format="PNG")
                     data_uri = "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode()
                     
-                    # Replace photo placeholder in HTML
-                    updated_html = st.session_state["builder_template_html"].replace("{{PHOTO_URL}}", data_uri)
-                    st.session_state["builder_template_html"] = updated_html
+                    # Replace photo placeholder in base template
+                    base_template_html = base_template_html.replace("{{PHOTO_URL}}", data_uri)
+                    # Also replace any existing image src
+                    if 'src="joh.png.jpg"' in base_template_html:
+                        base_template_html = base_template_html.replace('src="joh.png.jpg"', f'src="{data_uri}"')
+                    st.session_state["builder_template_html"] = base_template_html
                     st.success("Photo uploaded successfully!")
                 except Exception as e:
                     st.error(f"Error uploading photo: {e}")
@@ -179,18 +305,41 @@ def create_resume_builder_interface():
             ),
         )
 
-        # Initialize builder HTML if needed
-        if "builder_template_html" not in st.session_state or not st.session_state["builder_template_html"]:
-            st.session_state["builder_template_html"] = _assemble_html_from_state(template_id)
+        # PDF Download Button
+        st.markdown("#### 📄 Export")
+        if st.button("📥 Download PDF", type="primary"):
+            try:
+                # Generate live HTML with user data
+                live_html = _inject_user_data_into_template(base_template_html)
+                
+                # Import PDF generation here to avoid issues
+                from pdf_generator import generate_pdf_from_html
+                
+                # Generate PDF
+                pdf_bytes = generate_pdf_from_html(live_html)
+                
+                if pdf_bytes:
+                    st.download_button(
+                        label="📄 Click to Download Resume",
+                        data=pdf_bytes,
+                        file_name=f"resume_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                        mime="application/pdf"
+                    )
+                    st.success("✅ PDF generated successfully! Click the download button above.")
+                else:
+                    st.error("❌ Failed to generate PDF. Please try again.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error generating PDF: {str(e)}")
 
     with col_prev:
         st.markdown("### 👀 Live Preview")
 
-        html_doc = st.session_state.get("builder_template_html") or _assemble_html_from_state(template_id)
+        # Generate live HTML with current form data
+        live_html = _inject_user_data_into_template(base_template_html)
 
-        # Render the resume correctly (not as raw HTML text) and fit inside preview container
-        # Use components.html so full HTML documents render properly
-        components.html(html_doc, height=980, scrolling=True)
+        # Render the resume with live updates
+        components.html(live_html, height=980, scrolling=True)
 
         template_info = st.session_state.get('selected_template', 'Unknown')
         st.caption(f"📋 Template: {template_info}")
