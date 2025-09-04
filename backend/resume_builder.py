@@ -305,32 +305,6 @@ def create_resume_builder_interface():
             ),
         )
 
-        # PDF Download Button
-        st.markdown("#### 📄 Export")
-        if st.button("📥 Download PDF", type="primary"):
-            try:
-                # Generate live HTML with user data
-                live_html = _inject_user_data_into_template(base_template_html)
-                
-                # Import PDF generation here to avoid issues
-                from pdf_generator import generate_pdf_from_html
-                
-                # Generate PDF
-                pdf_bytes = generate_pdf_from_html(live_html)
-                
-                if pdf_bytes:
-                    st.download_button(
-                        label="📄 Click to Download Resume",
-                        data=pdf_bytes,
-                        file_name=f"resume_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-                        mime="application/pdf"
-                    )
-                    st.success("✅ PDF generated successfully! Click the download button above.")
-                else:
-                    st.error("❌ Failed to generate PDF. Please try again.")
-                    
-            except Exception as e:
-                st.error(f"❌ Error generating PDF: {str(e)}")
 
     with col_prev:
         st.markdown("### 👀 Live Preview")
